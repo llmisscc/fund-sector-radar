@@ -1,0 +1,12 @@
+{
+  "name": "fund-sector-radar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "实时基金板块数据看板与仓位策略辅助系统",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

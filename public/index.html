@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>基金板块实时雷达</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <h1>基金板块实时雷达</h1>
+        <p id="statusText">正在连接国内行情数据源...</p>
+      </div>
+      <div class="header-actions">
+        <label class="switch">
+          <input id="autoRefreshToggle" type="checkbox" checked />
+          <span>自动刷新</span>
+        </label>
+        <button id="refreshBtn" class="icon-button" type="button" title="刷新行情">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="summary-band" aria-label="市场状态">
+        <div class="score-block">
+          <div class="score-ring" id="scoreRing">
+            <span id="scoreValue">--</span>
+          </div>
+          <div>
+            <p class="eyebrow">2-3个月权益入场温度</p>
+            <h2 id="stanceText">等待数据</h2>
+            <p id="allocationText">系统会根据指数、板块广度和资金流自动生成分批策略。</p>
+          </div>
+        </div>
+        <div class="macro-strip" id="macroStrip"></div>
+      </section>
+
+      <section class="index-tape" id="indexTape" aria-label="主要指数"></section>
+
+      <section class="workbench">
+        <div class="panel panel-large">
+          <div class="panel-heading">
+            <div>
+              <h2>板块强弱与资金</h2>
+              <p>按基金投资语境聚合行业、概念和ETF，再结合涨跌幅、成交额、资金和过热程度识别候选方向。</p>
+            </div>
+            <div class="segmented" role="tablist" aria-label="板块类型">
+              <button class="segment active" data-board="fundThemes" type="button">基金板块</button>
+              <button class="segment" data-board="sectors" type="button">行业</button>
+              <button class="segment" data-board="concepts" type="button">概念</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>板块</th>
+                  <th>多周期趋势</th>
+                  <th>成交/覆盖</th>
+                  <th>资金/风险动量</th>
+                  <th>广度</th>
+                  <th>信号提示</th>
+                </tr>
+              </thead>
+              <tbody id="boardTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <aside class="panel">
+          <div class="panel-heading compact">
+            <h2>候选基金方向</h2>
+            <button id="copyStrategyBtn" class="text-button" type="button">
+              <i data-lucide="clipboard"></i>
+              复制策略
+            </button>
+          </div>
+          <div id="strategyList" class="strategy-list"></div>
+        </aside>
+      </section>
+
+      <section class="workbench">
+        <div class="panel">
+          <div class="panel-heading compact">
+            <h2>热门ETF/场内基金</h2>
+            <span class="muted">按涨幅排序，过滤低成交额</span>
+          </div>
+          <div id="etfList" class="quote-list"></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>自选基金估值</h2>
+              <p>输入基金代码，盘中估值来自天天基金；场内基金补充东方财富行情。</p>
+            </div>
+          </div>
+          <form id="watchForm" class="inline-form">
+            <input id="watchCodeInput" inputmode="numeric" maxlength="6" placeholder="基金代码，如 161725" />
+            <button class="icon-button" type="submit" title="添加自选基金">
+              <i data-lucide="plus"></i>
+            </button>
+          </form>
+          <div id="watchList" class="quote-list"></div>
+        </div>
+      </section>
+
+      <section class="panel backtest-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>历史验证</h2>
+            <p>用当前基金板块的代表ETF历史净值做月度轮动回测，输出胜率、最大回撤、夏普、换手、成本后收益和样本外表现。</p>
+          </div>
+          <div class="header-actions">
+            <span id="backtestStatus" class="muted">等待运行</span>
+            <button id="runBacktestBtn" class="text-button primary" type="button">
+              <i data-lucide="line-chart"></i>
+              运行回测
+            </button>
+          </div>
+        </div>
+        <div id="backtestSummary" class="metric-grid"></div>
+        <div id="backtestCurve" class="backtest-curve"></div>
+        <div class="table-wrap backtest-table-wrap">
+          <table class="backtest-table">
+            <thead>
+              <tr>
+                <th>验证板块</th>
+                <th>历史信号</th>
+                <th>样本天数</th>
+                <th>代表ETF/基金</th>
+              </tr>
+            </thead>
+            <tbody id="backtestThemes"></tbody>
+          </table>
+        </div>
+        <div id="backtestWarnings" class="warning-list backtest-warnings"></div>
+      </section>
+
+      <section class="panel holdings-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>已有仓位操作建议</h2>
+            <p>录入成本、占比、主题后，系统会结合实时板块信号生成减仓、持有、补仓或止盈建议。</p>
+          </div>
+          <div class="header-actions">
+            <button id="addPositionBtn" class="text-button" type="button">
+              <i data-lucide="plus"></i>
+              新增
+            </button>
+            <button id="analyzePositionsBtn" class="text-button primary" type="button">
+              <i data-lucide="activity"></i>
+              分析持仓
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="positions-table">
+            <thead>
+              <tr>
+                <th>代码</th>
+                <th>名称</th>
+                <th>主题/板块</th>
+                <th>成本净值</th>
+                <th>当前净值</th>
+                <th>仓位占比%</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="positionsBody"></tbody>
+          </table>
+        </div>
+        <div id="positionAdvice" class="advice-grid"></div>
+      </section>
+
+      <section class="panel portfolio-panel">
+        <div class="panel-heading">
+          <div>
+            <h2>组合优化</h2>
+            <p>把当前持仓、实时板块信号和历史验证合并，生成目标权重、主题偏离和单只基金调仓动作。</p>
+          </div>
+          <div class="header-actions">
+            <span id="portfolioStatus" class="muted">等待生成</span>
+            <button id="buildPortfolioBtn" class="text-button primary" type="button">
+              <i data-lucide="pie-chart"></i>
+              生成组合方案
+            </button>
+          </div>
+        </div>
+        <div id="portfolioSummary" class="metric-grid portfolio-summary"></div>
+        <div class="table-wrap portfolio-table-wrap">
+          <table class="portfolio-table">
+            <thead>
+              <tr>
+                <th>基金板块</th>
+                <th>当前</th>
+                <th>目标</th>
+                <th>偏离</th>
+                <th>动作</th>
+              </tr>
+            </thead>
+            <tbody id="portfolioTargets"></tbody>
+          </table>
+        </div>
+        <div id="portfolioActions" class="advice-grid portfolio-actions"></div>
+        <div id="portfolioWarnings" class="warning-list portfolio-warnings"></div>
+      </section>
+
+      <section class="risk-band">
+        <div>
+          <h2>策略边界</h2>
+          <p>本系统是数据与规则辅助，不构成保证收益或个性化投资承诺。基金净值估算会受持仓披露滞后、指数映射和上游刷新频率影响，实际涨跌以基金公司披露净值为准。</p>
+        </div>
+        <div id="riskWarnings" class="warning-list"></div>
+      </section>
+    </main>
+  </body>
+</html>
