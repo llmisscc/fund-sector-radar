@@ -2283,7 +2283,7 @@ async function serveStatic(req, res, pathname) {
   }
 }
 
-const server = http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = decodeURIComponent(url.pathname);
@@ -2354,8 +2354,14 @@ const server = http.createServer(async (req, res) => {
       timestamp: nowStamp(),
     });
   }
-});
+}
 
-server.listen(PORT, () => {
-  console.log(`Fund sector radar running at http://localhost:${PORT}`);
-});
+const server = http.createServer(handleRequest);
+
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`Fund sector radar running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = { handleRequest };

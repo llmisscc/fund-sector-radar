@@ -3,8 +3,8 @@
 这个项目有 Node 后端接口，不能只用 GitHub Pages。推荐流程是：
 
 1. 把代码推到 GitHub。
-2. 在 Render 导入这个 GitHub 仓库。
-3. Render 会读取 `render.yaml`，自动部署成一个可在线访问的网址。
+2. 在 Vercel 导入这个 GitHub 仓库。
+3. Vercel 会读取 `vercel.json`，自动部署成一个可在线访问的网址。
 
 ## 推到 GitHub
 
@@ -26,7 +26,26 @@ git remote add origin https://github.com/你的用户名/你的仓库名.git
 git push -u origin main
 ```
 
-## 在 Render 部署
+## 在 Vercel 部署
+
+1. 打开 https://vercel.com
+2. 使用 GitHub 登录
+3. 点击 `Add New...` -> `Project`
+4. 导入 `fund-sector-radar` 仓库
+5. Framework Preset 选择 `Other`
+6. Build Command 留空或填 `echo no-build`
+7. Output Directory 留空
+8. 点击 `Deploy`
+
+部署完成后，Vercel 会给你一个类似下面的网址：
+
+```text
+https://fund-sector-radar.vercel.app
+```
+
+打开这个网址就能在线访问。
+
+## Render 备用部署
 
 1. 打开 https://render.com
 2. 使用 GitHub 登录
