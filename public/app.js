@@ -58,6 +58,21 @@ const els = {
   copyStrategyBtn: document.querySelector("#copyStrategyBtn"),
 };
 
+const STATIC_API_MAP = {
+  "/api/health": "./data/health.json",
+  "/api/market": "./data/market.json",
+  "/api/backtest": "./data/backtest.json",
+};
+
+function isStaticMode() {
+  return window.location.hostname.endsWith("github.io") || new URLSearchParams(window.location.search).has("static");
+}
+
+function staticUrlFor(url) {
+  const path = String(url).split("?")[0];
+  return STATIC_API_MAP[path] || null;
+}
+
 function loadJson(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -115,10 +130,26 @@ function setStatus(text, isError = false) {
 }
 
 async function fetchJson(url, options) {
+  const staticUrl = staticUrlFor(url);
+  if (isStaticMode()) {
+    if (options?.method && options.method !== "GET") {
+      throw new Error("GitHub Pages 静态版不支持在线穿透持仓或组合优化，请使用本地 Node 版或后端部署版。");
+    }
+    if (staticUrl) {
+      const response = await fetch(`${staticUrl}?t=${Date.now()}`);
+      if (!response.ok) throw new Error(`静态快照不存在（HTTP ${response.status}）`);
+      return response.json();
+    }
+  }
+
   let response;
   try {
     response = await fetch(url, options);
   } catch (error) {
+    if (staticUrl) {
+      const fallback = await fetch(staticUrl);
+      if (fallback.ok) return fallback.json();
+    }
     if (window.location.protocol === "file:") {
       throw new Error("请从 http://localhost:3100 打开页面，不要直接双击 index.html。");
     }
@@ -148,7 +179,8 @@ async function refreshMarket() {
     const time = new Date(market.timestamp).toLocaleString("zh-CN", { hour12: false });
     const failed = (market.sourceStatus || []).filter((item) => item.status === "failed");
     const suffix = failed.length ? `｜部分数据降级：${failed.map((item) => item.name).join("、")}` : "";
-    setStatus(`已更新：${time}｜${market.dataDelay}${suffix}`);
+    const mode = isStaticMode() ? "静态快照" : "已更新";
+    setStatus(`${mode}：${time}｜${market.dataDelay}${suffix}`);
   } catch (error) {
     setStatus(`刷新失败：${error.message}`, true);
   } finally {
@@ -425,6 +457,10 @@ function renderEtfs() {
 
 async function refreshWatchList() {
   const codes = state.watchCodes.filter(Boolean).slice(0, 20);
+  if (isStaticMode()) {
+    els.watchList.innerHTML = '<div class="quote-row"><span>GitHub Pages 静态版不支持盘中估值接口；可查看市场与回测快照。</span></div>';
+    return;
+  }
   if (!codes.length) {
     els.watchList.innerHTML = '<div class="quote-row"><span>还没有自选基金。</span></div>';
     return;
@@ -504,6 +540,10 @@ function readPositionsFromTable() {
 
 async function analyzePositions() {
   readPositionsFromTable();
+  if (isStaticMode()) {
+    els.positionAdvice.innerHTML = '<div class="advice-item"><p>GitHub Pages 静态版不能调用持仓穿透接口；请用本地 Node 版或后端部署版分析持仓。</p></div>';
+    return;
+  }
   const clean = state.positions.filter((position) =>
     [position.code, position.name, position.category, position.cost, position.current, position.weightPct].some(Boolean),
   );
@@ -639,6 +679,13 @@ function renderPortfolioPlan() {
 
 async function buildPortfolioPlan() {
   readPositionsFromTable();
+  if (isStaticMode()) {
+    state.portfolioPlan = null;
+    renderPortfolioPlan();
+    els.portfolioStatus.textContent = "静态版不可用";
+    els.portfolioSummary.innerHTML = '<div class="empty-state error">GitHub Pages 静态版不能运行组合优化接口；请用本地 Node 版或后端部署版。</div>';
+    return;
+  }
   const clean = state.positions.filter((position) =>
     [position.code, position.name, position.category, position.cost, position.current, position.weightPct].some(Boolean),
   );
